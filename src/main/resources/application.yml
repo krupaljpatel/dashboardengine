@@ -1,0 +1,92 @@
+spring:
+  application:
+    name: multi-source-consumer
+  
+  datasource:
+    url: jdbc:h2:mem:consumerdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    database-platform: org.hibernate.dialect.H2Dialect
+  
+  h2:
+    console:
+      enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+logging:
+  level:
+    com.dashboardengine.consumer: INFO
+    org.springframework.kafka: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+app:
+  threading:
+    core-pool-size: 10
+    max-pool-size: 50
+    queue-capacity: 1000
+    keep-alive-seconds: 60
+  
+  leadership:
+    enabled: true
+    heartbeat-interval-ms: 5000
+    leader-timeout-ms: 15000
+
+  # Example configurations (will be environment-specific)
+  filesystem:
+    documents:
+      path: "/tmp/consumer/input"
+      patterns: ["*.txt", "*.csv", "*.json"]
+      poll-interval-ms: 5000
+      archive-dir: "/tmp/consumer/archive"
+      delete-after-process: false
+  
+  database:
+    reports:
+      url: "jdbc:h2:mem:testdb"
+      username: "sa"
+      password: ""
+      query: "SELECT * FROM reports WHERE processed = false"
+      cron-expression: "0 */5 * * * *"  # Every 5 minutes
+      fetch-size: 1000
+      output-format: "JSON"
+      output-path: "/tmp/consumer/output"
+
+---
+spring:
+  config:
+    activate:
+      on-profile: openshift
+
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/consumer}
+    username: ${DATABASE_USERNAME:consumer}
+    password: ${DATABASE_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+
+logging:
+  level:
+    com.dashboardengine.consumer: ${LOG_LEVEL:INFO}
