@@ -7,6 +7,8 @@ A high-performance Java application built with Spring Boot for consuming files a
 - **5 Source Types**: File System, FTP/SFTP, Message Queues, Kafka, Database
 - **High Throughput**: 10K+ messages/minute per pod instance
 - **OpenShift Ready**: Clustered deployment with leader election
+- **REST API Configuration**: Dynamic configuration via REST endpoints
+- **Isolated Processing**: Each file location runs independently with dedicated threads
 - **Monitoring**: Prometheus metrics and health checks
 - **Resilient**: Circuit breakers, retry mechanisms, error handling
 
@@ -34,35 +36,48 @@ docker build -t multi-source-consumer .
 
 ## Configuration
 
-Configuration is externalized via `application.yml`. Key sections:
+### Static Configuration (application.yml)
+Basic configuration via `application.yml` (auto-loaded at startup):
 
-### Threading Configuration
-```yaml
-app:
-  threading:
-    core-pool-size: 10
-    max-pool-size: 50
-    queue-capacity: 1000
+### Dynamic Configuration (REST API)
+Runtime configuration via REST endpoints:
+
+#### Create File System Configuration
+```bash
+curl -X POST http://localhost:8080/api/v1/filesystem/configs/documents \
+  -H "Content-Type: application/json" \
+  -d '{
+    "path": "/tmp/input",
+    "patterns": ["*.txt", "*.csv", "*.json"],
+    "pollIntervalMs": 5000,
+    "maxConcurrentFiles": 10,
+    "deleteAfterProcess": false,
+    "archiveDir": "/tmp/archive"
+  }'
 ```
 
-### File System Source
-```yaml
-app:
-  filesystem:
-    documents:
-      path: "/tmp/input"
-      patterns: ["*.txt", "*.csv"]
-      poll-interval-ms: 5000
+#### Start/Stop Consumer
+```bash
+# Start consumer
+curl -X POST http://localhost:8080/api/v1/filesystem/configs/documents/start
+
+# Stop consumer  
+curl -X POST http://localhost:8080/api/v1/filesystem/configs/documents/stop
+
+# Get status
+curl -X GET http://localhost:8080/api/v1/filesystem/status/documents
 ```
 
-### Database Scheduler
-```yaml
-app:
-  database:
-    reports:
-      url: "jdbc:postgresql://localhost/db"
-      cron-expression: "0 */5 * * * *"
-      query: "SELECT * FROM reports"
+#### Update Configuration (Hot Reload)
+```bash
+curl -X PUT http://localhost:8080/api/v1/filesystem/configs/documents \
+  -H "Content-Type: application/json" \
+  -d '{
+    "path": "/tmp/input", 
+    "patterns": ["*.txt"],
+    "pollIntervalMs": 2000,
+    "maxConcurrentFiles": 20
+  }'
 ```
 
 ## Monitoring
@@ -96,7 +111,9 @@ The application includes:
 
 ✅ **Phase 1 Complete**: Core Spring Boot framework, configuration, threading, leadership election, health checks, metrics
 
-🔄 **Next Phases**: Source adapter implementations (File System, FTP, Kafka, MQ, Database)
+✅ **Phase 2 Complete**: File System Consumer with directory monitoring, pattern matching, concurrent processing
+
+🔄 **Next Phases**: Database Scheduler, FTP Consumer, Kafka Consumer, MQ Consumer
 
 ## Contributing
 

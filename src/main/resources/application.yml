@@ -58,6 +58,11 @@ app:
       poll-interval-ms: 5000
       archive-dir: "/tmp/consumer/archive"
       delete-after-process: false
+    logs:
+      path: "/tmp/consumer/logs"
+      patterns: ["*.log", "regex:app\\d+\\.log"]
+      poll-interval-ms: 2000
+      delete-after-process: true
   
   database:
     reports:
